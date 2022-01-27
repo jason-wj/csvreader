@@ -5,10 +5,11 @@ Zhengxin <zhngxin@aliyun.com>
 2022-01-27 注：在[原作者：zhnxin](https://github.com/zhnxin/csvreader)基础上做了改动：
 1. 当header中字段和逗号之间存在空格时，去除空格
 2. value值，去除开头和结尾的空格
+3. header中的字段必须全为小写，结构体随意，但名称必须和header中字段名称保持一致
 
 == install
 ====
-go get github.com/zhnxin/csvreader
+go get github.com/jason-wj/csvreader
 ====
 == usage
 
