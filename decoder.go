@@ -8,6 +8,8 @@ import (
 	"os"
 	"reflect"
 	"strings"
+	"unicode"
+	"unicode/utf8"
 )
 
 type Decoder struct {
@@ -26,7 +28,8 @@ func New() *Decoder {
 func (d *Decoder) WithHeader(header []string) *Decoder {
 	d.header = make(map[string]int)
 	for i, h := range header {
-		d.header[h] = i
+		key := d.TrimSpace(h)
+		d.header[key] = i
 	}
 	return d
 }
@@ -142,7 +145,7 @@ func (d *Decoder) unMarshal(row []string, beanT reflect.Type) (beanR reflect.Val
 		}
 		if ok {
 			value = row[index]
-			value = strings.TrimSpace(value)
+			value = d.TrimSpace(value)
 			if fileV.Kind() == reflect.Ptr {
 				fileV.Set(reflect.New(fileV.Type().Elem()))
 				fileV = fileV.Elem()
@@ -187,4 +190,46 @@ func (d *Decoder) getIndex(name string) (index int, ok bool) {
 		}
 	}
 	return index, ok
+}
+
+// 去除首尾空格
+var asciiSpace = [256]uint8{'\t': 1, '\n': 1, '\v': 1, '\f': 1, '\r': 1, ' ': 1}
+
+func (d *Decoder) TrimSpace(s string) string {
+	// Fast path for ASCII: look for the first ASCII non-space byte
+	start := 0
+	for ; start < len(s); start++ {
+		c := s[start]
+		if c == 32 {
+			continue
+		}
+		if c >= utf8.RuneSelf {
+			// If we run into a non-ASCII byte, fall back to the
+			// slower unicode-aware method on the remaining bytes
+			return strings.TrimFunc(s[start:], unicode.IsSpace)
+		}
+		if asciiSpace[c] == 0 {
+			break
+		}
+	}
+
+	// Now look for the first ASCII non-space byte from the end
+	stop := len(s)
+	for ; stop > start; stop-- {
+		c := s[stop-1]
+		if c == 32 {
+			continue
+		}
+		if c >= utf8.RuneSelf {
+			return strings.TrimFunc(s[start:stop], unicode.IsSpace)
+		}
+		if asciiSpace[c] == 0 {
+			break
+		}
+	}
+
+	// At this point s[start:stop] starts and ends with an ASCII
+	// non-space bytes, so we're done. Non-ASCII cases have already
+	// been handled above.
+	return s[start:stop]
 }
