@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/zhnxin/csvreader"
+	"github.com/jason-wj/csvreader"
 )
 
 type testStruct struct {
@@ -14,6 +14,11 @@ type testStruct struct {
 	ID       int
 	Enable   bool
 	Type     CustomeType
+}
+
+type Info struct {
+	Hostname string
+	IP       string
 }
 
 type CustomeType int
@@ -28,6 +33,13 @@ func (c *CustomeType) FromString(str string) error {
 		return fmt.Errorf("unknown type:%s", str)
 	}
 	return nil
+}
+
+func TestBase(t *testing.T) {
+	var infos []Info
+	_ = csvreader.New().UnMarshalFile("ip.csv", &infos)
+	body, _ := json.Marshal(infos)
+	fmt.Println(string(body))
 }
 
 func TestSnakeName(t *testing.T) {

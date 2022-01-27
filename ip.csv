@@ -1,0 +1,3 @@
+hostname      ,ip
+redis  ,172.17.0.2
+mariadb,172.17.0.3
