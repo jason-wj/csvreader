@@ -1,102 +1,108 @@
-# csvreader
-csv reader is a simple decoder for decoding csv file to struct
+= csvreader
+Zhengxin <zhngxin@aliyun.com>
+简单的csv格式文件解析到`struct`工具
 
-[README_ZH_cn.adoc](./README_ZH_cn.adoc)
+2022-01-27 注：在[原作者：zhnxin](https://github.com/zhnxin/csvreader)基础上做了改动：
+1. 当header中字段和逗号之间存在空格时，去除空格
+2. value值，去除开头和结尾的空格
 
-2022-01-27 remark：Modiations were made on[original author：zhnxin](https://github.com/zhnxin/csvreader)：
-1. Remove spaces when spaces exist between a field and a comma in the header
+== install
+====
+go get github.com/zhnxin/csvreader
+====
+== usage
 
-# todo
+=== 简单用法
 
-- [x] Custom parster
-- [x] pointer attribute
+NOTE: 默认情况下，*csv* 文件的首行会被当作header处理。
 
-# install
-```
-go get github.com/jason-wj/csvreader
-```
-
-# usage
-
-## simple
-As the default,the first line of csv file would be regared as the header.Take a look as follows.
-
-`file.csv`
-```csv
+[source,csv]
+.file.csv
+----
 hosname,ip
 redis,172.17.0.2
 mariadb,172.17.0.3
-```
+----
 
-```go
+
+[[app-listing]]
+[source,go]
+.go
+----
 type Info struct{
-    Hostname string
-    IP string
+Hostname string
+IP string
 }
 
-//struc slice
+//struct slice
 infos := []Info{}
 _ = csvreader.New().UnMarshalFile("file.csv",&infos)
 body,_ := json.Marshal(infos)
 fmt.Println(string(body))
 
 //point slice
-infos := []*Info{}
+infos = []*Info{}
 _ = csvreader.New().UnMarshalFile("file.csv",&infos)
 body,_ := json.Marshal(infos)
 fmt.Println(string(body))
-```
+----
 
-If the csv file do not contain headers,you can also set it.
+NOTE: 如果 *csv* 文件首行不包含header，可以使用 *WithHeader([]string)* 来指定header。
 
-```
+[source,go]
+----
 _ = csvreader.New().WithHeader([]string{"hostname","ip"}).UnMarshalFile("file.csv",&infos)
-```
+----
 
-## custom parseter
+=== 自定义parster
 
-Just like enum,we need implement our own parster. The example is shown as follows.
+就像枚举类型(enum),偶尔会遇到这种需要实现自定义转换过程的情况。例子如下
 
-```go
+[source,go]
+----
 type NetProtocol uint32
 const(
-    NetProtocol_TCP NetProtocol = iota
-    NetProtocol_UDP
-    NetProtocol_DCCP
-    NetProtocol_SCTP
+NetProtocol_TCP NetProtocol = iota
+NetProtocol_UDP
+NetProtocol_DCCP
+NetProtocol_SCTP
 )
 
 type ServiceInfo struct{
-    Host string
-    Port string
-    Protocol NetProtocol
+Host string
+Port string
+Protocol NetProtocol
 }
-```
+----
 
-It's inconvenient to edit a csv file with the custome enum type. It's greate to convert _top_ or _TCP_ to NetProtocol_TCP automatically.Just to implement the _CsvMarshal_ interface
+直接使用原始的类型来编辑csv文件，十分不便。这时就需要实现自定义parser。
 
+[TIP]
+====
+----
+type CsvMarshal interface {
+FromString(string) error
+}
+----
+====
 
-    type CsvMarshal interface {
-	    FromString(string) error
-    }
-
-As the case above, the simple solution is this.
-```go
+[source,go]
+----
 func (p *NetProtocol)FromString(protocol string) error{
-    switch strings.ToLower(protocol){
-        case "tcp":
-            *p = NetProtocol_TCP
-        case "udp":
-            *p = NetProtocol_UDP
-        case "dccp":
-            *p = NetProtocol_DCCP
-        case "sctp":
-            *p = NetProtocol_SCTP
-        default:
-            return fmt.Errorf("unknown protocoal:%s",protocol)
-    }
-    return nil
+switch strings.ToLower(protocol){
+case "tcp":
+*p = NetProtocol_TCP
+case "udp":
+*p = NetProtocol_UDP
+case "dccp":
+*p = NetProtocol_DCCP
+case "sctp":
+*p = NetProtocol_SCTP
+default:
+return fmt.Errorf("unknown protocoal:%s",protocol)
 }
+return nil
+}
+----
 
-```
-There is another exampler you can refer to [TestCustom](./reader_test.go#TestCustom)
+另外一个例子 link:reader_test.go#TestCustom[TestCustom]
